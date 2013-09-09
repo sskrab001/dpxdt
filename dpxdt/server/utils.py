@@ -16,11 +16,13 @@
 """Common utility functions."""
 
 import base64
+import cStringIO
 import datetime
 import hashlib
 import functools
 import logging
 import os
+import pycurl
 import traceback
 import uuid
 
@@ -168,6 +170,17 @@ def per_request_callbacks(sender, response):
     for func in getattr(g, 'call_after_request', ()):
         response = func(response)
     return response
+
+def send_via_curl(fullUrl):
+    if fullUrl != "":
+        buf = cStringIO.StringIO()
+        c = pycurl.Curl()
+        c.setopt(c.URL, str(fullUrl))
+        c.setopt(c.WRITEFUNCTION, buf.write)
+        c.perform()
+        print buf.getvalue()
+        buf.close()
+        logging.info("Curl request made to: " + fullUrl)
 
 
 # Do this with signals instead of @app.after_request because the session

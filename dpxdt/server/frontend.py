@@ -36,6 +36,7 @@ from dpxdt.server import forms
 from dpxdt.server import models
 from dpxdt.server import operations
 from dpxdt.server import signals
+from dpxdt.server import utils
 
 
 @app.route('/')
@@ -74,8 +75,8 @@ def new_build():
 
         operations.UserOps(current_user.get_id()).evict()
 
-        logging.info('Created build via UI: build_id=%r, name=%r',
-                     build.id, build.name)
+        logging.info('Created build via UI: build_id=%r, name=%r, teamcityUrl=%r',
+                     build.id, build.name, build.teamcityUrl)
         return redirect(url_for('view_build', id=build.id))
 
     return render_template(
@@ -163,6 +164,11 @@ def view_release():
         decision_states = (
             models.Release.REVIEWING, models.Release.RECEIVING)
 
+        if form.promoteToProduction.data:
+            """ User pressed the button to promote the release """
+            theBuild = models.Build.query.get(build.id)
+            utils.send_via_curl(theBuild.teamcityUrl + release.name)
+
         if form.good.data and release.status in decision_states:
             release.status = models.Release.GOOD
             auth.save_admin_log(build, release_good=True, release=release)
@@ -194,6 +200,7 @@ def view_release():
     form.good.data = True
     form.bad.data = True
     form.reviewing.data = True
+    form.promoteToProduction.data = True
 
     return render_template(
         'view_release.html',
@@ -332,8 +339,8 @@ def build_settings():
     if settings_form.validate_on_submit():
         settings_form.populate_obj(build)
 
-        message = ('name=%s, send_email=%s, email_alias=%s' % (
-            build.name, build.send_email, build.email_alias))
+        message = ('name=%s, send_email=%s, email_alias=%s, teamcityUrl=%s' % (
+            build.name, build.send_email, build.email_alias, build.teamcityUrl))
         auth.save_admin_log(build, changed_settings=True, message=message)
 
         db.session.add(build)
@@ -347,6 +354,7 @@ def build_settings():
 
     # Update form values for rendering
     settings_form.name.data = build.name
+    settings_form.teamcityUrl.data = build.teamcityUrl
     settings_form.build_id.data = build.id
     settings_form.email_alias.data = build.email_alias
     settings_form.send_email.data = build.send_email

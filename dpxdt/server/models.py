@@ -96,6 +96,7 @@ class Build(db.Model):
     modified = db.Column(db.DateTime, default=datetime.datetime.utcnow,
                          onupdate=datetime.datetime.utcnow)
     name = db.Column(db.String(255))
+    teamcityUrl = db.Column(db.String(1023))
     public = db.Column(db.Boolean, default=False)
     owners = db.relationship('User', secondary=ownership_table,
                              backref=db.backref('builds', lazy='dynamic'),

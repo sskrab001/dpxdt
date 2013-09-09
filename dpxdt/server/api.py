@@ -103,7 +103,7 @@ from dpxdt.server import utils
 def create_release():
     """Creates a new release candidate for a build."""
     build = g.build
-    release_name = request.form.get('release_name')
+    release_name = request.form.get('release_name').replace("_", " ")
     utils.jsonify_assert(release_name, 'release_name required')
     url = request.form.get('url')
     utils.jsonify_assert(release_name, 'url required')
@@ -173,18 +173,34 @@ def _check_release_done_processing(release):
     release_name = release.name
     release_number = release.number
 
+    query = models.Run.query.filter_by(release_id=release.id)
+    numberOfFailures = 0
+    for run in query:
+        if run.status == models.Run.DIFF_FOUND:
+            numberOfFailures += 1
+
+    logging.info('RUN COMPLETED WITH %r FAILURES', numberOfFailures)
+
     @utils.after_this_request
     def send_notification_email(response):
         emails.send_ready_for_review(build_id, release_name, release_number)
 
-    release.status = models.Release.REVIEWING
+    if numberOfFailures == 0:
+        """ If no failures, promote the release via the TeamCity job """
+        release.status = models.Release.GOOD
+        theBuild = models.Build.query.get(build_id)
+        utils.send_via_curl(theBuild.teamcityUrl + release_name)
+    else:
+        release.status = models.Release.BAD
+
     db.session.add(release)
     return True
 
 
 def _get_release_params():
     """Gets the release params from the current request."""
-    release_name = request.form.get('release_name')
+    """ Spaces in the release name were replaced with underscores, put them back """
+    release_name = request.form.get('release_name').replace("_", " ")
     utils.jsonify_assert(release_name, 'release_name required')
     release_number = request.form.get('release_number', type=int)
     utils.jsonify_assert(release_number is not None, 'release_number required')
@@ -250,7 +266,8 @@ def find_run():
 def _get_or_create_run(build):
     """Gets a run for a build or creates it if it does not exist."""
     release_name, release_number = _get_release_params()
-    run_name = request.form.get('run_name', type=str)
+    """ Spaces in the run name were replaced with underscores, put them back """
+    run_name = request.form.get('run_name', type=str).replace("_", " ")
     utils.jsonify_assert(run_name, 'run_name required')
 
     release = (

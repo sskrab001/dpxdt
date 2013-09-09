@@ -139,6 +139,70 @@ page.onLoadFinished = function() {
     console.log('page.onLoadFinished');
 };
 
+// Take the keypresses that were appended to the URL and make the corresponding phantomjs
+// call(s) to create the desired user behavior
+page.sendKey = function(keys) {
+    // Split the keys (like l,l,r,e,l) into the key being processed now (theKey = l) and the keys
+    // yet to be processed (theRest = l,r,e,l)
+    var theKey  = keys.split(',')[0];
+    var theRest = keys.substring(keys.indexOf(',')+1);
+
+    // Give a default delay of 500ms after a keypress so animations can complete
+    var delay = 500;
+
+    switch(theKey){
+        case "l":
+            page.sendEvent('keypress', page.event.key.Left);
+            break;
+        case "r":
+            page.sendEvent('keypress', page.event.key.Right);
+            break;
+        case "u":
+            page.sendEvent('keypress', page.event.key.Up);
+            break;
+        case "d":
+            page.sendEvent('keypress', page.event.key.Down);
+            break;
+        case "e":
+            page.sendEvent('keypress', page.event.key.Enter);
+            // Wait 2 sec after the Enter/Ok key is pressed to allow some time for the next page to load
+            delay = 2000;
+            break;
+        case "p":
+            // Insert a 2 sec delay if requested by the author
+            delay = 2000;
+            break;
+        default:
+            console.log('Unknown automation key:' +  theKey)
+            break;
+    }
+
+    if(keys.length > theRest.length) {
+        // There are still more keypresses to process, so wait for the requested delay
+        // and then process the next key
+        setTimeout(function(){page.sendKey(theRest)},delay);
+    }
+};
+
+// Look for the argument testKeySeq appended to the url, and if it exists, perform the
+// key actions specified
+page.parseTestParms = function(theUrl) {
+    var keys = "";
+    try {
+        var urlArgs = theUrl.split("?")[1];
+        var elements = urlArgs.split("&");
+        for(var a = 0; a < elements.length; a++){
+            if (elements[a].split("=")[0] == "testKeySeq") {
+                keys = elements[a].split("=")[1];
+            }
+        }
+    } catch(ex){
+    }
+
+    if(keys.length > 0) {
+       setTimeout(function(){page.sendKey(keys)},5000);
+    }
+};
 
 /**
  * Our main screenshot routine.
@@ -162,6 +226,9 @@ page.doDepictedScreenshots = function() {
             window.eval(config.injectJs);
         }, config);
     }
+
+    var pageUrl = page.evaluate(function() {return window.location.href;});
+    page.parseTestParms(pageUrl);
 
     // TODO: Do we need this setTimeout?
     window.setTimeout(function() {
