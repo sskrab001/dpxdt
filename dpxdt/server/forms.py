@@ -30,6 +30,7 @@ class BuildForm(Form):
     """Form for creating or editing a build."""
 
     name = TextField(validators=[Length(min=1, max=200)])
+    teamcityUrl = TextField(label="Base TeamCity URL to Notify Upon Successful Testrun Completion (Optional)")
 
 
 class ReleaseForm(Form):
@@ -42,6 +43,7 @@ class ReleaseForm(Form):
     good = HiddenField()
     bad = HiddenField()
     reviewing = HiddenField()
+    promoteToProduction = HiddenField()
 
 
 class RunForm(Form):
@@ -106,4 +108,5 @@ class SettingsForm(Form):
     email_alias = TextField('Mailing list for notifications',
                             validators=[Optional(), Email()])
     build_id = HiddenField(validators=[NumberRange(min=1)])
+    teamcityUrl = TextField(label="Base TeamCity URL to Notify Upon Successful Testrun Completion (Optional)")
     save = SubmitField('Save')
