@@ -112,6 +112,8 @@ class PdiffWorkflow(process_worker.ProcessWorkflow):
         # Method from http://www.imagemagick.org/Usage/compare/
         return [
             'compare',
+            '-dissimilarity-threshold',
+            '1',
             '-verbose',
             '-metric',
             'RMSE',
