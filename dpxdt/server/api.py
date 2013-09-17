@@ -209,7 +209,8 @@ def _get_release_params():
 
 def _find_last_good_run(build):
     """Finds the last good release and run for a build."""
-    run_name = request.form.get('run_name', type=str)
+    """ Spaces in the run name were replaced with underscores, put them back """
+    run_name = request.form.get('run_name', type=str).replace("_", " ")
     utils.jsonify_assert(run_name, 'run_name required')
 
     last_good_release = (
