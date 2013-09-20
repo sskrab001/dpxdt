@@ -173,7 +173,12 @@ page.sendKey = function(keys) {
             delay = 2000;
             break;
         default:
-            console.log('Unknown automation key:' +  theKey)
+            if((theKey >= '0') && (theKey <= '9')) {
+                // Pass numeric keys through directly
+                page.sendEvent('keypress', theKey);
+            } else { 
+                console.log('Unknown automation key:' +  theKey)
+            }
             break;
     }
 
